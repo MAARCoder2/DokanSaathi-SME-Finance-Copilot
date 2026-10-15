@@ -106,6 +106,11 @@ export interface DashboardSummary {
   expenses_total: string;
   profit_status: ProfitStatus;
   profit_amount: string | null;
+  sales_cash_collected?: string;
+  sales_credit_due?: string;
+  supplier_bills_total?: string;
+  supplier_payments_in_period?: string;
+  net_cash_flow?: string;
 }
 
 export type ChecklistItemStatus = "available" | "missing" | "not_applicable" | "unverified";

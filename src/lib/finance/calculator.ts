@@ -214,7 +214,40 @@ export function computeDashboardMetrics(
     }
   }
 
-  // 6. Estimated Profit:
+  // 6. Detailed Breakdown & Net Cash Flow Calculations
+  let salesCashCollected = new Decimal(0);
+  for (const tx of activeTxs) {
+    if (
+      tx.type === "SALE" &&
+      tx.transaction_date >= periodStart &&
+      tx.transaction_date <= periodEnd
+    ) {
+      if (tx.amount_collected_at_sale) {
+        salesCashCollected = salesCashCollected.plus(new Decimal(tx.amount_collected_at_sale));
+      }
+    }
+  }
+  const salesCreditDue = salesTotal.minus(salesCashCollected);
+
+  let supplierBillsTotal = new Decimal(0);
+  let supplierPaymentsInPeriod = new Decimal(0);
+  for (const tx of activeTxs) {
+    if (
+      tx.transaction_date >= periodStart &&
+      tx.transaction_date <= periodEnd
+    ) {
+      if (tx.type === "SUPPLIER_BILL") {
+        supplierBillsTotal = supplierBillsTotal.plus(new Decimal(tx.amount));
+      } else if (tx.type === "SUPPLIER_PAYMENT") {
+        supplierPaymentsInPeriod = supplierPaymentsInPeriod.plus(new Decimal(tx.amount));
+      }
+    }
+  }
+
+  // Deterministic Net Cash Flow: Cash Inflow - (Supplier Payments + Expenses)
+  const netCashFlow = cashCollected.minus(supplierPaymentsInPeriod.plus(expensesTotal));
+
+  // 7. Estimated Profit:
   // PRD Section 7.3: Incomplete cost data -> default to insufficient_cost_data & null amount
   return {
     period,
@@ -229,5 +262,10 @@ export function computeDashboardMetrics(
     expenses_total: expensesTotal.toFixed(2),
     profit_status: "insufficient_cost_data",
     profit_amount: null,
+    sales_cash_collected: salesCashCollected.toFixed(2),
+    sales_credit_due: salesCreditDue.toFixed(2),
+    supplier_bills_total: supplierBillsTotal.toFixed(2),
+    supplier_payments_in_period: supplierPaymentsInPeriod.toFixed(2),
+    net_cash_flow: netCashFlow.toFixed(2),
   };
 }

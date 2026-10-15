@@ -4,7 +4,19 @@ export interface PeriodBoundaries {
   period: PeriodType;
   periodStart: string; // YYYY-MM-DD
   periodEnd: string; // YYYY-MM-DD
+  label: string;
+  formattedRange: string;
 }
+
+const SHORT_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+const FULL_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
 /**
  * Returns formatted YYYY-MM-DD string in a specific timezone
@@ -20,30 +32,16 @@ export function formatDateInTimezone(date: Date, timezone: string): string {
 }
 
 /**
- * Parses YYYY-MM-DD into parts in target timezone
+ * Formats a calendar YYYY-MM-DD string safely without timezone shifting
  */
-export function getDatePartsInTimezone(date: Date, timezone: string) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    weekday: "narrow",
-  });
-  const parts = formatter.formatToParts(date);
-  const partMap: Record<string, string> = {};
-  for (const p of parts) {
-    partMap[p.type] = p.value;
-  }
-  return {
-    year: parseInt(partMap.year, 10),
-    month: parseInt(partMap.month, 10),
-    day: parseInt(partMap.day, 10),
-  };
+export function formatCalendarDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${d} ${SHORT_MONTHS[m - 1]} ${y}`;
 }
 
 /**
  * Calculates start and end YYYY-MM-DD for daily, weekly, or monthly periods in business timezone.
+ * Explicitly enforces Monday-to-Sunday business week convention.
  */
 export function getPeriodBoundaries(
   period: PeriodType,
@@ -61,6 +59,8 @@ export function getPeriodBoundaries(
       period: "daily",
       periodStart: dateStr,
       periodEnd: dateStr,
+      label: "Today",
+      formattedRange: `Today · ${day} ${SHORT_MONTHS[month - 1]} ${year}`,
     };
   }
 
@@ -72,10 +72,12 @@ export function getPeriodBoundaries(
       period: "monthly",
       periodStart: startStr,
       periodEnd: endStr,
+      label: "This Month",
+      formattedRange: `This Month · ${FULL_MONTHS[month - 1]} ${year}`,
     };
   }
 
-  // Weekly: Monday to Sunday
+  // Weekly: Monday to Sunday (Standard Business Week)
   // Determine day of week in timezone (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
   const utcDate = new Date(Date.UTC(year, month - 1, day));
   const dayOfWeek = utcDate.getUTCDay(); // 0 is Sunday
@@ -91,9 +93,27 @@ export function getPeriodBoundaries(
     return `${y}-${m}-${dt}`;
   };
 
+  const startStr = formatUtc(mondayDate);
+  const endStr = formatUtc(sundayDate);
+
+  const startDay = mondayDate.getUTCDate();
+  const startMonth = mondayDate.getUTCMonth() + 1;
+  const endDay = sundayDate.getUTCDate();
+  const endMonth = sundayDate.getUTCMonth() + 1;
+  const endYear = sundayDate.getUTCFullYear();
+
+  let formattedRange = "";
+  if (startMonth === endMonth) {
+    formattedRange = `This Week · ${startDay}–${endDay} ${SHORT_MONTHS[startMonth - 1]} ${endYear}`;
+  } else {
+    formattedRange = `This Week · ${startDay} ${SHORT_MONTHS[startMonth - 1]} – ${endDay} ${SHORT_MONTHS[endMonth - 1]} ${endYear}`;
+  }
+
   return {
     period: "weekly",
-    periodStart: formatUtc(mondayDate),
-    periodEnd: formatUtc(sundayDate),
+    periodStart: startStr,
+    periodEnd: endStr,
+    label: "This Week",
+    formattedRange,
   };
 }

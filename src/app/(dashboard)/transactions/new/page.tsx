@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, PlusCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,13 @@ import { TransactionReviewCard } from "@/components/TransactionReviewCard";
 import { ClarificationCard } from "@/components/ClarificationCard";
 import { DraftTransaction, Transaction } from "@/types";
 
-export default function NewTransactionPage() {
+function NewTransactionContent() {
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const initialTab: "voice" | "text" | "manual" =
+    rawTab === "voice" || rawTab === "manual" ? rawTab : "text";
+  const initialVoiceText = searchParams.get("voiceText") || "";
+
   const [draft, setDraft] = useState<DraftTransaction | null>(null);
   const [originalInput, setOriginalInput] = useState<string>("");
   const [clarificationQuestion, setClarificationQuestion] = useState<string | null>(null);
@@ -228,6 +235,8 @@ export default function NewTransactionPage() {
       {!confirmedTransaction && !draft && !clarificationQuestion && (
         <InputContainer
           businessCurrency="BDT"
+          initialTab={initialTab}
+          initialText={initialVoiceText}
           onExtractionSuccess={handleExtractionSuccess}
           onNeedsClarification={handleNeedsClarification}
           isProcessing={isProcessing}
@@ -237,3 +246,18 @@ export default function NewTransactionPage() {
     </div>
   );
 }
+
+export default function NewTransactionPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-muted-foreground text-sm">
+          Loading transaction recorder...
+        </div>
+      }
+    >
+      <NewTransactionContent />
+    </Suspense>
+  );
+}
+

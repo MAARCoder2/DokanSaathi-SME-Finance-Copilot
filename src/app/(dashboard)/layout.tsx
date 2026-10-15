@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FloatingActions } from "@/components/FloatingActions";
 
 export default function DashboardLayout({
   children,
@@ -143,9 +144,12 @@ export default function DashboardLayout({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl pb-20 md:pb-8">
+      <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl pb-28 md:pb-12">
         {children}
       </main>
+
+      {/* Global Floating Action Buttons (Safe-area positioned) */}
+      <FloatingActions />
 
       {/* Mobile Bottom Fixed Navigation Bar (320px+ compliant) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t px-2 py-1.5 flex items-center justify-around shadow-lg">

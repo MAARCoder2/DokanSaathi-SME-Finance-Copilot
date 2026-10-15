@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mic, MessageSquare, FileText, Send, Loader2, Sparkles } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { DraftTransaction, ExtractionResult } from "@/types";
 
 interface InputContainerProps {
   businessCurrency?: string;
+  initialTab?: "voice" | "text" | "manual";
+  initialText?: string;
   onExtractionSuccess: (draft: DraftTransaction, originalInput: string) => void;
   onNeedsClarification: (question: string, originalInput: string) => void;
   isProcessing: boolean;
@@ -18,14 +20,29 @@ interface InputContainerProps {
 
 export function InputContainer({
   businessCurrency = "BDT",
+  initialTab = "text",
+  initialText = "",
   onExtractionSuccess,
   onNeedsClarification,
   isProcessing,
   setIsProcessing,
 }: InputContainerProps) {
-  const [activeTab, setActiveTab] = useState<"voice" | "text" | "manual">("text");
-  const [textInput, setTextInput] = useState("");
+  const [activeTab, setActiveTab] = useState<"voice" | "text" | "manual">(initialTab);
+  const [textInput, setTextInput] = useState(initialText);
   const [extractError, setExtractError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (initialText && initialText.trim()) {
+      setTextInput(initialText);
+      processTextInput(initialText);
+    }
+  }, [initialText]);
 
   const processTextInput = async (text: string) => {
     if (!text.trim() || isProcessing) return;

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export const BUSINESS_TYPES = [
+const BUSINESS_TYPES = [
   "Grocery / General Store (মুদি দোকান)",
   "Pharmacy / Medicine Store",
   "Electronics / Mobile Repair",
@@ -18,7 +18,7 @@ export const BUSINESS_TYPES = [
   "Other Retail / Service",
 ] as const;
 
-export const SUPPORTED_CURRENCIES = [
+const SUPPORTED_CURRENCIES = [
   { code: "BDT", name: "BDT — Bangladeshi Taka (৳)" },
   { code: "USD", name: "USD — US Dollar ($)" },
   { code: "EUR", name: "EUR — Euro (€)" },
@@ -26,7 +26,7 @@ export const SUPPORTED_CURRENCIES = [
   { code: "GBP", name: "GBP — British Pound (£)" },
 ] as const;
 
-export const SUPPORTED_TIMEZONES = [
+const SUPPORTED_TIMEZONES = [
   { value: "Asia/Dhaka", label: "Asia/Dhaka (GMT+6, Bangladesh Standard Time)" },
   { value: "Asia/Kolkata", label: "Asia/Kolkata (GMT+5:30, India Standard Time)" },
   { value: "Asia/Singapore", label: "Asia/Singapore (GMT+8)" },

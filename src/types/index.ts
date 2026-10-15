@@ -144,3 +144,12 @@ export interface TransactionAuditEvent {
   new_values: Partial<Transaction> | null;
   created_at: string;
 }
+
+export interface ExtractionResult {
+  status: "ready_for_review" | "needs_clarification";
+  draft?: DraftTransaction;
+  clarification_question?: string;
+  confidence_score?: number;
+  reasoning?: string;
+}
+

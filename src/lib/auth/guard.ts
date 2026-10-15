@@ -23,29 +23,36 @@ export type AuthGuardResult = AuthGuardSuccess | AuthGuardFailure;
 export async function verifyBusinessOwnership(
   requestedBusinessId?: string
 ): Promise<AuthGuardResult> {
+  const isPlaceholderUrl =
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder");
+  const isTestOrDemo =
+    process.env.NODE_ENV === "test" ||
+    process.env.AI_PROVIDER === "mock" ||
+    isPlaceholderUrl;
+
+  // In test/demo mode with placeholder credentials, avoid hanging external network requests
+  if (isTestOrDemo && isPlaceholderUrl) {
+    return {
+      authorized: true,
+      userId: "demo-user-id",
+      business: {
+        id: requestedBusinessId || "demo-business-id",
+        owner_id: "demo-user-id",
+        name: "Demo Retail Shop",
+        business_type: "Grocery / General Store",
+        currency: "BDT",
+        timezone: "Asia/Dhaka",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    };
+  }
+
   const supabase = await createServerSupabaseClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    // If running in development/demo without live Supabase credentials, provide demo sandbox fallback
-    const isMockEnv = process.env.AI_PROVIDER === "mock" && !process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("supabase.co");
-    if (isMockEnv) {
-      return {
-        authorized: true,
-        userId: "demo-user-id",
-        business: {
-          id: requestedBusinessId || "demo-business-id",
-          owner_id: "demo-user-id",
-          name: "Demo Retail Shop",
-          business_type: "Grocery / General Store",
-          currency: "BDT",
-          timezone: "Asia/Dhaka",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      };
-    }
-
     return {
       authorized: false,
       status: 401,

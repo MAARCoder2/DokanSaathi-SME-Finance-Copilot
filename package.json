@@ -9,10 +9,10 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration",
-    "test:watch": "vitest"
+    "test": "vitest run --pool=forks --no-color",
+    "test:unit": "vitest run tests/unit --pool=forks --no-color",
+    "test:integration": "vitest run tests/integration --pool=forks --no-color",
+    "test:watch": "vitest --pool=forks --no-color"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",

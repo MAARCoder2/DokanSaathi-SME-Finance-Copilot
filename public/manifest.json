@@ -1,0 +1,17 @@
+{
+  "name": "DokanSaathi — SME Finance Copilot",
+  "short_name": "DokanSaathi",
+  "description": "English-first SME Finance Copilot for small businesses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

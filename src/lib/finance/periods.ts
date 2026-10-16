@@ -40,6 +40,14 @@ export function formatCalendarDate(dateStr: string): string {
 }
 
 /**
+ * Formats a calendar YYYY-MM-DD string into full human readable date (e.g. October 15, 2026)
+ */
+export function formatCalendarDateFull(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${FULL_MONTHS[m - 1]} ${d}, ${y}`;
+}
+
+/**
  * Calculates start and end YYYY-MM-DD for daily, weekly, or monthly periods in business timezone.
  * Explicitly enforces Monday-to-Sunday business week convention.
  */

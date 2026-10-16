@@ -91,8 +91,9 @@ export async function GET(req: NextRequest) {
           (t) => t.status === "active" && t.transaction_date <= asOfDate
         );
 
-        if (typeFilter === "SALE") {
+        if (typeFilter === "SALE" || (!typeFilter && unpaidFilter)) {
           filtered = filtered.filter((sale) => {
+            if (sale.type !== "SALE") return false;
             const total = parseFloat(sale.amount) || 0;
             const upfront = parseFloat(sale.amount_collected_at_sale || "0") || 0;
             const linkedPayments = paymentsUpToAsOf

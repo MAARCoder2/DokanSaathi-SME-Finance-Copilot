@@ -1,33 +1,78 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { PlusCircle, Search, Filter, Receipt, RefreshCw, AlertCircle } from "lucide-react";
+import {
+  PlusCircle,
+  Search,
+  Filter,
+  Receipt,
+  RefreshCw,
+  AlertCircle,
+  X,
+  Calendar,
+  Layers,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TransactionList } from "@/components/TransactionList";
 import { Transaction, TransactionType, TRANSACTION_TYPES } from "@/types";
 
-export default function TransactionsLedgerPage() {
+function TransactionsLedgerContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Query parameter state from URL
+  const queryType = searchParams.get("type") || "ALL";
+  const queryView = searchParams.get("view") || "";
+  const queryStart = searchParams.get("start") || "";
+  const queryEnd = searchParams.get("end") || "";
+  const queryAsOf = searchParams.get("asOf") || "";
+  const queryUnpaid = searchParams.get("unpaid") === "true";
+  const queryStatus = (searchParams.get("status") as "active" | "all") || "active";
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [businessCurrency, setBusinessCurrency] = useState("BDT");
 
-  // Filters
+  // Local interactive filter controls
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedType, setSelectedType] = useState<string>("ALL");
-  const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
+  const [selectedType, setSelectedType] = useState<string>(queryType);
+  const [statusFilter, setStatusFilter] = useState<"active" | "all">(queryStatus);
+
+  // Sync state when URL params change
+  useEffect(() => {
+    setSelectedType(queryType);
+    setStatusFilter(queryStatus);
+  }, [queryType, queryStatus]);
+
+  const hasActiveDrillDown =
+    queryType !== "ALL" ||
+    Boolean(queryView) ||
+    Boolean(queryStart) ||
+    Boolean(queryEnd) ||
+    Boolean(queryAsOf) ||
+    queryUnpaid;
 
   const fetchTransactions = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
+
       if (selectedType !== "ALL") params.append("type", selectedType);
       if (statusFilter !== "all") params.append("status", statusFilter);
       if (searchQuery.trim()) params.append("search", searchQuery.trim());
+
+      // Propagate dashboard drill-downs if present
+      if (queryView) params.append("view", queryView);
+      if (queryStart) params.append("start", queryStart);
+      if (queryEnd) params.append("end", queryEnd);
+      if (queryAsOf) params.append("asOf", queryAsOf);
+      if (queryUnpaid) params.append("unpaid", "true");
 
       const res = await fetch(`/api/transactions?${params.toString()}`);
       const data = await res.json();
@@ -48,15 +93,21 @@ export default function TransactionsLedgerPage() {
 
   useEffect(() => {
     fetchTransactions();
-  }, [selectedType, statusFilter]);
+  }, [selectedType, statusFilter, queryView, queryStart, queryEnd, queryAsOf, queryUnpaid]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchTransactions();
   };
 
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setSelectedType("ALL");
+    setStatusFilter("active");
+    router.push("/transactions");
+  };
+
   const handleTransactionVoided = (voidedId: string) => {
-    // If active only, remove from view; else mark voided
     if (statusFilter === "active") {
       setTransactions((prev) => prev.filter((t) => t.id !== voidedId));
     } else {
@@ -66,21 +117,42 @@ export default function TransactionsLedgerPage() {
     }
   };
 
+  // Generate human description of active filter
+  const getFilterDescription = () => {
+    if (queryView === "cash_collected") {
+      return `Cash Inflow (Sales Cash + Customer Due Payments) ${
+        queryStart && queryEnd ? `· ${queryStart} to ${queryEnd}` : ""
+      }`;
+    }
+    if (queryUnpaid && queryAsOf) {
+      return `Unpaid Receivables & Dues as of ${queryAsOf}`;
+    }
+    if (queryType !== "ALL") {
+      return `${queryType.replace("_", " ")} records ${
+        queryStart && queryEnd ? `· ${queryStart} to ${queryEnd}` : ""
+      }`;
+    }
+    if (queryStart && queryEnd) {
+      return `Period: ${queryStart} to ${queryEnd}`;
+    }
+    return "Custom Filter Active";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Financial Ledger
             </h1>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs font-semibold">
               {transactions.length} Records
             </Badge>
           </div>
           <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-            Verified, auditable records of all business sales, payments, bills, and expenses.
+            Verified, auditable entries of all business sales, collections, bills, and expenses.
           </p>
         </div>
 
@@ -90,7 +162,7 @@ export default function TransactionsLedgerPage() {
             size="sm"
             onClick={fetchTransactions}
             disabled={isLoading}
-            className="h-10"
+            className="h-10 px-3"
             title="Refresh Ledger"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -106,24 +178,47 @@ export default function TransactionsLedgerPage() {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="p-3.5 bg-card rounded-xl border space-y-3">
-        <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-2.5">
-          <div className="relative flex-1">
+      {/* Active Drill-Down Banner */}
+      {hasActiveDrillDown && (
+        <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center space-x-2">
+            <Filter className="w-4 h-4 text-primary shrink-0" />
+            <span className="font-semibold text-foreground">
+              {getFilterDescription()}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearFilters}
+            className="h-7 text-xs px-2 hover:bg-primary/20 text-primary"
+          >
+            <X className="w-3.5 h-3.5 mr-1" />
+            Clear Filter
+          </Button>
+        </div>
+      )}
+
+      {/* Filter and Search Bar (320px+ Responsive Layout) */}
+      <div className="p-3.5 bg-card rounded-2xl border space-y-3 shadow-xs">
+        <form onSubmit={handleSearchSubmit} className="flex flex-col gap-2.5">
+          {/* Full-width search bar */}
+          <div className="relative w-full">
             <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by counterparty name or note..."
-              className="pl-9 h-10 bg-background text-sm"
+              placeholder="Search counterparty or note..."
+              className="pl-9 h-10 bg-background text-sm w-full"
             />
           </div>
 
-          <div className="flex gap-2">
+          {/* Responsive 2-column filter controls (prevents 320px overflow) */}
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full">
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="h-10 px-3 border rounded-md bg-background text-xs md:text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+              className="h-10 px-3 border rounded-lg bg-background text-xs sm:text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none w-full"
             >
               <option value="ALL">All Types</option>
               {TRANSACTION_TYPES.map((t) => (
@@ -136,14 +231,18 @@ export default function TransactionsLedgerPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "active" | "all")}
-              className="h-10 px-3 border rounded-md bg-background text-xs md:text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+              className="h-10 px-3 border rounded-lg bg-background text-xs sm:text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none w-full"
             >
               <option value="active">Active Only</option>
               <option value="all">Include Voided</option>
             </select>
 
-            <Button type="submit" variant="secondary" className="h-10 text-xs px-3">
-              Search
+            <Button
+              type="submit"
+              variant="secondary"
+              className="col-span-2 sm:col-span-1 h-10 text-xs sm:text-sm font-semibold px-4 w-full sm:w-auto"
+            >
+              Filter Records
             </Button>
           </div>
         </form>
@@ -159,9 +258,9 @@ export default function TransactionsLedgerPage() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="p-12 text-center space-y-3">
+        <div className="p-12 text-center space-y-3 bg-card rounded-2xl border">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-sm font-medium text-foreground">Loading financial records...</p>
+          <p className="text-sm font-semibold text-foreground">Loading verified ledger records...</p>
         </div>
       )}
 
@@ -174,17 +273,24 @@ export default function TransactionsLedgerPage() {
           <div className="space-y-1">
             <h3 className="text-base font-bold text-foreground">No Transactions Found</h3>
             <p className="text-xs md:text-sm text-muted-foreground max-w-sm mx-auto">
-              {searchQuery || selectedType !== "ALL"
-                ? "No transactions match your current search or filter criteria."
-                : "You have not recorded any financial entries yet. Record your first sale, supplier payment, or expense."}
+              {hasActiveDrillDown || searchQuery || selectedType !== "ALL"
+                ? "No ledger records match the selected filter criteria."
+                : "No financial entries have been recorded yet."}
             </p>
           </div>
-          <Link href="/transactions/new">
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Record First Entry
-            </Button>
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            {hasActiveDrillDown && (
+              <Button variant="outline" onClick={handleClearFilters}>
+                Clear Active Filters
+              </Button>
+            )}
+            <Link href="/transactions/new">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Record First Entry
+              </Button>
+            </Link>
+          </div>
         </div>
       )}
 
@@ -197,5 +303,20 @@ export default function TransactionsLedgerPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function TransactionsLedgerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center space-y-3 bg-card rounded-2xl border">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-sm font-semibold text-foreground">Loading financial ledger...</p>
+        </div>
+      }
+    >
+      <TransactionsLedgerContent />
+    </Suspense>
   );
 }

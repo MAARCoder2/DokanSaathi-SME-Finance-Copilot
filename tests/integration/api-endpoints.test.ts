@@ -32,7 +32,7 @@ describe("API Endpoints Integration & Financial Invariants", () => {
     const data = await res.json();
     expect(data.items).toHaveLength(6);
     expect(data.readiness_percentage).toBeGreaterThanOrEqual(0);
-    expect(data.disclaimer).toContain("does not predict, promise, or guarantee loan approval");
+    expect(data.disclaimer).toContain("does not approve loans or guarantee financing");
   });
 
   it("GET /api/transactions returns filtered business transactions", async () => {

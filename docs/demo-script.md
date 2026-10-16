@@ -89,7 +89,9 @@
 **Presenter Highlights:**
 > "Finally, when the shopkeeper considers applying for working capital, DokanSaathi provides the **Financing Record Readiness Checklist**.
 >
-> Grounded in real SME lending requirements, it tracks whether the shopkeeper has established 30+ days of consecutive bookkeeping, documented receivables, and registered business identification.
+> Grounded in real SME lending requirements, it tracks 6 evidence-based categories across Identity, Bank Account Details, Sales History, Receivables, Supplier Payables, and Operating Expenses.
+>
+> Each category clearly displays its provenance—distinguishing user-reported data from application record-derived ledger entries. Real record counts are shown without arbitrary thresholds.
 >
 > Most importantly, DokanSaathi is transparent and compliant: it prominently displays statutory disclaimers explaining that this is an organizational readiness guide, not a loan guarantee.
 >
